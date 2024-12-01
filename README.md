@@ -23,9 +23,9 @@ pip install pandas numpy
 
 ## Usage
 
-1. **Load Training and Test Data**: Load datasets in JSON format (`dataset.json` and `test_dataset.json`).
-2. **Preprocess Data**: Converts categorical variables to numeric using one-hot encoding.
-3. **Run Python**: ```python knn_classifier.py```
+1. **Load Training and Test Data**: Load datasets in JSON format (`dataset.json` and `test_dataset.json` (test_dataset.json is not necessary.)).
+2. **Run Python**: ```python knn_classifier.py```
+3. **Preprocess Data**: Converts categorical variables to numeric using one-hot encoding.
 4. **Train and Evaluate**: Choose the value of **k** (number of nearest neighbors) and select the distance calculation method (`E` for Euclidean or `M` for Manhattan).
 5. **Accuracy Output**: The program will print the accuracy based on leave-one-out cross-validation and a confusion matrix.
 
