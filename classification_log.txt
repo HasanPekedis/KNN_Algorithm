@@ -1,11 +1,2 @@
-Invalid data format: PlayTennis
-Invalid data format: Outlook_Overcast
-Invalid data format: Outlook_Rain
-Invalid data format: Outlook_Sunny
-Invalid data format: Temperature_Cool
-Invalid data format: Temperature_Hot
-Invalid data format: Temperature_Mild
-Invalid data format: Humidity_High
-Invalid data format: Humidity_Normal
-Invalid data format: Wind_Strong
-Invalid data format: Wind_Weak
+Invalid data format:   PlayTennis  Outlook_Overcast  Outlook_Rain  Outlook_Sunny  Temperature_Cool  Temperature_Hot  Temperature_Mild  Humidity_High  Humidity_Normal  Wind_Strong  Wind_Weak
+0         No             False         False           True             False             True             False           True            False        False       True

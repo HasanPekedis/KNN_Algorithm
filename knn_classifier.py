@@ -36,40 +36,53 @@ def load_model(filename):
 
 # Calculate Euclidean distance
 def calculate_distance(instance1, instance2):
-    return np.sqrt(np.sum((np.array(instance1) - np.array(instance2)) ** 2))
+    distance = 0
+
+    # Iterate over column names (index of the Series)
+    for column in instance1.columns:  
+        if column == "PlayTennis":  # Skip the label column
+            continue  
+        elif column in instance2.columns:
+            # Check the condition for True or False values
+            if instance2[column].values[0] == True:
+                continue
+            else:
+                distance += 1  # Increment distance
+
+        
+    return np.sqrt(distance)
+
 
 def knn_classify(test_instance, training_data, k):
     distances = []
 
-    # Extract the features of the test instance (exclude the label in test_instance)
-    test_features = list(test_instance.values())[:-1]  # Exclude label from test instance
+    for i in range(len(training_data)):
+        train_instance = training_data.iloc[i:i+1]
+        dist = calculate_distance(test_instance,train_instance)
+        distances.append((dist, train_instance['PlayTennis']))
 
-    for train_instance in training_data:
-        # Extract the features of the training instance (exclude the label)
-        train_features = list(train_instance.values())[:-1]  # Exclude label from training instance
-        
-        # Calculate Euclidean distance between test instance and training instance
-        dist = calculate_distance(test_features, train_features)
-        distances.append((dist, train_instance[-1]))  # Append the distance and the label of the train instance
 
     # Sort distances by the calculated distance
     distances.sort(key=lambda x: x[0])
 
     # Select the k nearest neighbors
     neighbors = distances[:k]
-
     # Perform majority voting to determine the predicted label
     labels = [neighbor[1] for neighbor in neighbors]
+
+    # Extract scalar value from each label if it's a Series
+    labels = [label if isinstance(label, (int, str)) else label.values[0] for label in labels]
+
     prediction = max(set(labels), key=labels.count)
-
+    
     return prediction, distances
-
 
 
 def evaluate_accuracy(test_data, training_data, k):
     correct = 0
     with open("classification_log.txt", "w") as log_file:
-        for instance in test_data:
+        for i in range(len(test_data)):
+            instance = training_data.iloc[i:i+1]
             # Ensure instance is a dictionary (not a string)
             if isinstance(instance, dict):
                 # Extracting features (excluding label)
@@ -92,12 +105,55 @@ def evaluate_accuracy(test_data, training_data, k):
     # Return accuracy as the ratio of correct predictions
     return correct / len(test_data)
 
+def leave_one_out_cross_validation(data, k):
+    # Initialize confusion matrix counters
+    true_positive = 0
+    false_positive = 0
+    true_negative = 0
+    false_negative = 0
+
+    correct_predictions = 0
+
+    for i in range(len(data)):
+        # Use the ith instance as the test set
+        test_instance = data.iloc[i:i+1]
+
+        # Use all other instances as the training set
+        training_data = pd.concat([data.iloc[:i], data.iloc[i+1:]])
+
+        # Extract the actual label of the test instance
+        actual_label = test_instance["PlayTennis"].values[0]
+
+        # Classify the test instance using the KNN classifier
+        prediction, _ = knn_classify(test_instance, training_data, k)
+
+        # Check if the prediction matches the actual label
+        if prediction == actual_label:
+            correct_predictions += 1
+            if prediction == 1:  # True Positive
+                true_positive += 1
+            else:  # True Negative
+                true_negative += 1
+        else:
+            if prediction == 1:  # False Positive
+                false_positive += 1
+            else:  # False Negative
+                false_negative += 1
+
+    # Print the confusion matrix
+    print("Confusion Matrix:")
+    print(f"TP: {true_positive}, FP: {false_positive}")
+    print(f"FN: {false_negative}, TN: {true_negative}")
+
+    # Calculate and return the average accuracy
+    accuracy = correct_predictions / len(data)
+    return accuracy
+
 # Main function to classify and evaluate
 if __name__ == "__main__":
     # Example usage
     training_data = load_model("dataset.json")
     test_data = load_model("test_dataset.json")
-
     
     one_hot_encoded_training_data = preprocess_data(training_data)
     one_hot_encoded_test_data = preprocess_data(test_data)
@@ -106,11 +162,6 @@ if __name__ == "__main__":
 
     k = int(input("Enter the value of k: "))
 
+    accu_loocv = leave_one_out_cross_validation(one_hot_encoded_training_data,k)
 
-    knn_classify(one_hot_encoded_test_data, one_hot_encoded_training_data, k)
-    #accuracy = evaluate_accuracy(one_hot_encoded_training_data, one_hot_encoded_training_data, k)
-
-    print(f"Accuracy: {accuracy}")
-   
-
-
+    print(accu_loocv)
