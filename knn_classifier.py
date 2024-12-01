@@ -34,33 +34,51 @@ def load_model(filename):
     with open(filename, "r") as f:
         return json.load(f)
 
-# Calculate Euclidean distance
 def calculate_distance(instance1, instance2):
-    distance = 0
+    # Ensure both instances have the same columns
+    if not instance1.columns.equals(instance2.columns):
+        raise ValueError("Instances must have the same columns for distance calculation.")
 
-    # Iterate over column names (index of the Series)
-    for column in instance1.columns:  
-        if column == "PlayTennis":  # Skip the label column
-            continue  
-        elif column in instance2.columns:
-            # Check the condition for True or False values
-            if instance2[column].values[0] == True:
-                continue
-            else:
-                distance += 1  # Increment distance
-
-        
-    return np.sqrt(distance)
+    # Compute the squared differences for all features (exclude 'PlayTennis' column)
+    squared_differences = [
+        (int(instance1[column].values[0]) - int(instance2[column].values[0])) ** 2
+        for column in instance1.columns if column != "PlayTennis"
+    ]
+    # Calculate the square root of the sum of squared differences
+    return np.sqrt(sum(squared_differences))
 
 
-def knn_classify(test_instance, training_data, k):
+# Calculate Manhattan Distance
+def calculate_manhattan_distance(instance1, instance2):
+    # Ensure both instances have the same columns
+    if not instance1.columns.equals(instance2.columns):
+        raise ValueError("Instances must have the same columns for distance calculation.")
+    
+    # Compute the absolute differences for all features (exclude 'PlayTennis' column)
+    absolute_differences = [
+        abs(int(instance1[column].values[0]) - int(instance2[column].values[0]))
+        for column in instance1.columns if column != "PlayTennis"
+    ]
+    # Return the sum of the absolute differences
+    return sum(absolute_differences)
+
+def knn_classify(test_instance, training_data, k, distance_calculation_type):
     distances = []
 
     for i in range(len(training_data)):
+        # Extract the current training instance as a DataFrame
         train_instance = training_data.iloc[i:i+1]
-        dist = calculate_distance(test_instance,train_instance)
-        distances.append((dist, train_instance['PlayTennis']))
 
+        # Calculate the distance between the test and training instance
+        if distance_calculation_type == "E":
+            dist = calculate_distance(test_instance, train_instance)
+        elif distance_calculation_type == "M":
+            dist = calculate_manhattan_distance(test_instance, train_instance)
+        # Extract the label ('PlayTennis') as a scalar value
+        label = train_instance['PlayTennis'].values[0]
+
+        # Append the distance and label as a tuple
+        distances.append((dist, label))
 
     # Sort distances by the calculated distance
     distances.sort(key=lambda x: x[0])
@@ -105,7 +123,7 @@ def evaluate_accuracy(test_data, training_data, k):
     # Return accuracy as the ratio of correct predictions
     return correct / len(test_data)
 
-def leave_one_out_cross_validation(data, k):
+def leave_one_out_cross_validation(data, k, distance_calculation_type):
     # Initialize confusion matrix counters
     true_positive = 0
     false_positive = 0
@@ -125,7 +143,7 @@ def leave_one_out_cross_validation(data, k):
         actual_label = test_instance["PlayTennis"].values[0]
 
         # Classify the test instance using the KNN classifier
-        prediction, _ = knn_classify(test_instance, training_data, k)
+        prediction, _ = knn_classify(test_instance, training_data, k, distance_calculation_type)
 
         # Check if the prediction matches the actual label
         if prediction == actual_label:
@@ -155,6 +173,15 @@ if __name__ == "__main__":
     training_data = load_model("dataset.json")
     test_data = load_model("test_dataset.json")
     
+    training_data_df = pd.DataFrame(training_data)
+    print("Training Dataset:")
+    print(training_data_df.to_string(index=False)) 
+
+    # Summarize the dataset by counting instances per class (i.e., PlayTennis)
+    class_counts = training_data_df['PlayTennis'].value_counts()
+    print("\nClass Distribution (PlayTennis):")
+    print(class_counts)
+    
     one_hot_encoded_training_data = preprocess_data(training_data)
     one_hot_encoded_test_data = preprocess_data(test_data)
 
@@ -162,6 +189,8 @@ if __name__ == "__main__":
 
     k = int(input("Enter the value of k: "))
 
-    accu_loocv = leave_one_out_cross_validation(one_hot_encoded_training_data,k)
+    distance_calculation_type  = str(input("Enter the type of distance calculation method E for Euclidean - M for Manhattan: "))
 
-    print(accu_loocv)
+    accu_loocv = leave_one_out_cross_validation(one_hot_encoded_training_data,k,distance_calculation_type)
+
+    print(f"Accuracy: {accu_loocv}")
